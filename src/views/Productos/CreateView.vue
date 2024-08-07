@@ -1,0 +1,140 @@
+<script setup lang="ts">
+import SaveButton from '@/components/SaveButton.vue';
+import { restApi } from '@/composables/axios';
+import { sendRequest, show_alert } from '@/helpers/functions';
+import type { Product } from '@/interfaces/Product';
+import type { Provider } from '@/interfaces/Provider';
+import { onMounted, ref, watch } from 'vue';
+
+const product = ref<Product>({
+  id: 0,
+  nombre: '',
+  descripcion: '',
+  precio: 0,
+  cantidad: 0,
+  proveedor: {
+    id: 0,
+    nombre: '',
+  },
+});
+
+const providers = ref<Provider[] | null>(null);
+
+const saveProduct = () => {
+  if (product.value.nombre.trim() === '') {
+    show_alert('Escribe el nombre', 'warning', 'nombre');
+  } else if (product.value.descripcion.trim() === '') {
+    show_alert('Escribe una descripción no mayor a 200 caracteres', 'warning', 'descripcion');
+  } else {
+    let params = {
+      nombre: product.value.nombre,
+      descripcion: product.value.descripcion,
+      precio: product.value.precio,
+      cantidad: product.value.cantidad,
+      proveedor: {
+        id: product.value.proveedor,
+      },
+    };
+    // console.log(params);
+    sendRequest('POST', params, '/productos', 'Producto registrado correctamente', '/productos');
+  }
+};
+
+const getProviders = async () => {
+  try {
+    const response = await restApi.get<Provider[]>('/proveedores');
+    providers.value = response.data;
+  } catch (error) {
+    throw 'Url no encontrado';
+  }
+};
+
+onMounted(() => {
+  getProviders();
+});
+
+/* watch(
+  product,
+  (newValue) => {
+    console.log('El objeto product ha cambiado:', newValue);
+  },
+  { deep: true },
+); */
+</script>
+
+<template>
+  <div class="row mt-3">
+    <div class="col-md-6 offset-md-3">
+      <div class="card">
+        <div class="card-header bg-dark text-white text-center">Nuevo producto</div>
+        <div class="card-body">
+          <form @submit.prevent="saveProduct">
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-gift"></i></span>
+              <input
+                type="text"
+                id="nombre"
+                class="form-control"
+                maxlength="50"
+                placeholder="Nombre del producto"
+                v-model="product.nombre"
+                required
+              />
+            </div>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-comment"></i></span>
+              <input
+                type="text"
+                id="descripcion"
+                class="form-control"
+                maxlength="200"
+                placeholder="Descripción del producto"
+                v-model="product.descripcion"
+                required
+              />
+            </div>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-dollar-sign"></i></span>
+              <input
+                type="number"
+                id="precio"
+                class="form-control"
+                step="0.01"
+                placeholder="Precio"
+                v-model="product.precio"
+                required
+              />
+            </div>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-hashtag"></i></span>
+              <input
+                type="number"
+                id="cantidad"
+                class="form-control"
+                step="1"
+                placeholder="Cantidad"
+                v-model="product.cantidad"
+                required
+              />
+            </div>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-truck-fast"></i></span>
+              <select
+                name="provedor"
+                id="proveedor"
+                class="form-select"
+                v-model="product.proveedor"
+              >
+                <option value="" selected disabled>Seleccione un proveedor</option>
+                <option v-for="provider in providers" :key="provider.id" :value="provider.id">
+                  {{ provider.nombre }}
+                </option>
+              </select>
+            </div>
+            <SaveButton />
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
